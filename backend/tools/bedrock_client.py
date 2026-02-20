@@ -25,45 +25,32 @@ class BedrockClient:
             self._client = boto3.client("bedrock-runtime", region_name=region_name)
 
     def invoke(self, model_id: str, prompt: str) -> str:
-        """Invoke a Bedrock model and return the response text."""
-        # Different models have different request/response formats
-        if "titan" in model_id.lower():
-            body = json.dumps(
-                {
-                    "inputText": prompt,
-                    "textGenerationConfig": {
-                        "maxTokenCount": 1024,
-                        "temperature": 0.0,
-                    },
-                }
-            )
-        elif "claude" in model_id.lower():
-            body = json.dumps(
-                {
-                    "anthropic_version": "bedrock-2023-05-31",
-                    "max_tokens": 1024,
-                    "messages": [{"role": "user", "content": prompt}],
-                }
-            )
-        else:
-            # Generic format
-            body = json.dumps({"prompt": prompt, "max_tokens": 1024})
-
+        """Invoke a Bedrock model using the Converse API."""
         try:
-            response = self._client.invoke_model(
+            # Use the Converse API which works with inference profiles
+            response = self._client.converse(
                 modelId=model_id,
-                body=body,
-                contentType="application/json",
-                accept="application/json",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [{"text": prompt}]
+                    }
+                ],
+                inferenceConfig={
+                    "maxTokens": 2000,
+                    "temperature": 0.0
+                }
             )
-            result = json.loads(response["body"].read())
             
-            # Parse response based on model type
-            if "titan" in model_id.lower():
-                return result.get("results", [{}])[0].get("outputText", "")
-            elif "claude" in model_id.lower():
-                return result.get("content", [{}])[0].get("text", "")
-            else:
-                return str(result)
+            # Extract text from response
+            output = response.get("output", {})
+            message = output.get("message", {})
+            content = message.get("content", [])
+            
+            if content and len(content) > 0:
+                return content[0].get("text", "")
+            
+            return ""
+            
         except ClientError as exc:
             raise BedrockError(f"Bedrock invocation failed: {exc}") from exc

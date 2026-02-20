@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisGraph - HIPAA LLM Firewall</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .banner {
+            background: #dc3545;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .banner.active {
+            display: block;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            margin-bottom: 20px;
+            color: #667eea;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .chat-history {
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .chat-message.blocked {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .chat-message.success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .chat-message .meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .chat-message .query {
+            font-style: italic;
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .chat-message .response {
+            font-weight: 500;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 14px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 500;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+            color: #667eea;
+        }
+
+        .mode-btn:hover {
+            border-color: #667eea;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛡️ AegisGraph</h1>
+        <p>HIPAA-Aligned LLM Firewall with Graph-Based Authorization</p>
+    </div>
+
+    <div class="banner" id="strictBanner">
+        🚨 STRICT_MODE ENABLED - Enhanced Security Active
+    </div>
+
+    <div class="container">
+        <div class="panel">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('chat')">💬 Chat</button>
+                <button class="tab" onclick="switchTab('admin')">⚙️ Admin</button>
+            </div>
+
+            <div id="chatTab" class="tab-content active">
+                <h2>Clinical Chat</h2>
+                <form id="chatForm" onsubmit="sendChat(event)">
+                    <div class="form-group">
+                        <label>Doctor ID</label>
+                        <input type="text" id="docId" value="D1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Patient ID</label>
+                        <input type="text" id="patientId" value="P101" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Role</label>
+                        <input type="text" id="role" value="Cardiology" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Message</label>
+                        <textarea id="message" placeholder="Enter your clinical query..." required></textarea>
+                    </div>
+                    <button type="submit" id="submitBtn">Send Request</button>
+                </form>
+
+                <div class="chat-history" id="chatHistory">
+                    <p style="color: #999; text-align: center;">No messages yet. Submit a query to get started.</p>
+                </div>
+            </div>
+
+            <div id="adminTab" class="tab-content">
+                <h2>Security Mode Control</h2>
+                <p style="margin-bottom: 20px; color: #666; font-size: 14px;">
+                    <strong>NORMAL:</strong> Standard operation<br>
+                    <strong>STRICT_MODE:</strong> Enhanced security with keyword blocking<br>
+                    <strong>LOCKDOWN:</strong> All requests refused
+                </p>
+
+                <div class="status success" id="currentMode">
+                    Current Mode: <strong>NORMAL</strong>
+                </div>
+
+                <div class="mode-selector">
+                    <button class="mode-btn active" onclick="setMode('NORMAL')">NORMAL</button>
+                    <button class="mode-btn" onclick="setMode('STRICT_MODE')">STRICT_MODE</button>
+                    <button class="mode-btn" onclick="setMode('LOCKDOWN')">LOCKDOWN</button>
+                </div>
+
+                <div id="modeStatus"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>📊 Datadog Dashboard</h2>
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 8px; text-align: center; border: 2px dashed #ddd;">
+                <h3 style="color: #667eea; margin-bottom: 15px;">📊 Dashboard Placeholder</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    To view your Datadog dashboard here, update the <code>DD_DASHBOARD_URL</code> in your <code>.env</code> file with your actual dashboard URL.
+                </p>
+                <p style="color: #666; font-size: 14px;">
+                    <strong>Metrics being tracked:</strong><br>
+                    • aegisgraph.eval.access_legitimacy<br>
+                    • aegisgraph.eval.phi_risk<br>
+                    • aegisgraph.eval.cost_usd<br>
+                    • aegisgraph.security.auth_denies<br>
+                </p>
+                <p style="margin-top: 20px;">
+                    <a href="https://app.datadoghq.com" target="_blank" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                        Open Datadog in new tab →
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:8000';
+        let currentMode = 'NORMAL';
+
+        // Poll for mode changes every 5 seconds
+        setInterval(checkMode, 5000);
+        checkMode();
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            if (tab === 'chat') {
+                document.querySelector('.tab:nth-child(1)').classList.add('active');
+                document.getElementById('chatTab').classList.add('active');
+            } else {
+                document.querySelector('.tab:nth-child(2)').classList.add('active');
+                document.getElementById('adminTab').classList.add('active');
+            }
+        }
+
+        async function checkMode() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/mode`);
+                const data = await response.json();
+                currentMode = data.security_mode;
+                
+                // Update banner
+                const banner = document.getElementById('strictBanner');
+                if (currentMode === 'STRICT_MODE') {
+                    banner.classList.add('active');
+                } else {
+                    banner.classList.remove('active');
+                }
+                
+                // Update mode display
+                document.getElementById('currentMode').innerHTML = `Current Mode: <strong>${currentMode}</strong>`;
+                
+                // Update active button
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[onclick="setMode('${currentMode}')"]`)?.classList.add('active');
+            } catch (error) {
+                console.error('Failed to check mode:', error);
+            }
+        }
+
+        async function setMode(mode) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/mode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('modeStatus').innerHTML = `
+                        <div class="status success">✅ Mode changed to ${mode}</div>
+                    `;
+                    checkMode();
+                } else {
+                    throw new Error('Failed to change mode');
+                }
+            } catch (error) {
+                document.getElementById('modeStatus').innerHTML = `
+                    <div class="status error">❌ Failed to change mode</div>
+                `;
+            }
+        }
+
+        async function sendChat(event) {
+            event.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
+            const docId = document.getElementById('docId').value;
+            const patientId = document.getElementById('patientId').value;
+            const role = document.getElementById('role').value;
+            const message = document.getElementById('message').value;
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        doc_id: docId,
+                        patient_id: patientId,
+                        role: role,
+                        message: message,
+                        user_id: docId,
+                        security_mode: currentMode
+                    })
+                });
+                
+                const data = await response.json();
+                addChatMessage(docId, patientId, role, message, data);
+                
+                // Clear message field
+                document.getElementById('message').value = '';
+            } catch (error) {
+                addChatMessage(docId, patientId, role, message, {
+                    blocked: true,
+                    reason_codes: ['Connection error: ' + error.message]
+                });
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Request';
+            }
+        }
+
+        function addChatMessage(docId, patientId, role, message, result) {
+            const history = document.getElementById('chatHistory');
+            
+            // Remove placeholder if exists
+            if (history.querySelector('p')) {
+                history.innerHTML = '';
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${result.blocked ? 'blocked' : 'success'}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            
+            messageDiv.innerHTML = `
+                <div class="meta">
+                    ${timestamp} | 👨‍⚕️ ${docId} (${role}) → 🏥 ${patientId}
+                </div>
+                <div class="query">
+                    <strong>Query:</strong> ${message}
+                </div>
+                <div class="response">
+                    ${result.blocked 
+                        ? `❌ <strong>Blocked:</strong> ${result.reason_codes?.join(', ') || 'Unknown reason'}`
+                        : `✅ <strong>Response:</strong> ${result.final_text || 'No response text'}`
+                    }
+                </div>
+            `;
+            
+            history.insertBefore(messageDiv, history.firstChild);
+        }
+    </script>
+</body>
+</html>

@@ -9,7 +9,8 @@ from backend.models.schemas import ChatRequest, IntentDecision, PolicyDecision
 @pytest.fixture
 def policy_agent():
     """Create a GraphPolicyAgent instance."""
-    return GraphPolicyAgent()
+    with patch('backend.agents.graph_policy_agent.Neo4jClient'):
+        return GraphPolicyAgent()
 
 
 @pytest.fixture

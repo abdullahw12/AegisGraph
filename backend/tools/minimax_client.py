@@ -16,10 +16,23 @@ class MiniMaxClient:
         if not self._enabled:
             logger.info("MiniMaxClient: MINIMAX_API_KEY not set — TTS disabled.")
 
-    def speak_alert(self, text: str) -> None:
+    def speak_alert(self, text: str, request_id: Optional[str] = None, 
+                   security_mode: Optional[str] = None,
+                   doc_id: Optional[str] = None,
+                   patient_id: Optional[str] = None) -> None:
         """Speak an incident alert via MiniMax TTS. No-ops if not configured."""
         with ddtrace.tracer.trace("minimax.tts_alert") as span:
+            # Add span tags
+            if request_id:
+                span.set_tag("request_id", request_id)
+            if security_mode:
+                span.set_tag("security_mode", security_mode)
+            if doc_id:
+                span.set_tag("doc_id", doc_id)
+            if patient_id:
+                span.set_tag("patient_id", patient_id)
             span.set_tag("alert_text", text[:200])
+            
             if not self._enabled:
                 logger.debug("MiniMaxClient: TTS skipped (no API key).")
                 return

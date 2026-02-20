@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AegisGraph - Clinical Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Login Screen */
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 400px;
+        }
+
+        .login-container h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn:hover {
+            background: #5568d3;
+        }
+
+        .btn-emergency {
+            background: #ff4757;
+            margin-top: 10px;
+        }
+
+        .btn-emergency:hover {
+            background: #ee5a6f;
+        }
+
+        .error {
+            color: #ff4757;
+            font-size: 14px;
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* Main App */
+        .app-container {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+        }
+
+        .app-header {
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .app-header h1 {
+            font-size: 24px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .emergency-badge {
+            background: #ff4757;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .app-body {
+            display: flex;
+            height: calc(100vh - 70px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .sidebar-header h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .patient-list {
+            padding: 10px;
+        }
+
+        .patient-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .patient-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .patient-item.active {
+            border-color: #667eea;
+            background: #f0f3ff;
+        }
+
+        .patient-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .patient-id {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Chat Area */
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            background: white;
+        }
+
+        .chat-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+
+        .chat-header p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-user {
+            background: #667eea;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 18px 18px 4px 18px;
+            max-width: 70%;
+            margin-left: auto;
+            display: inline-block;
+            float: right;
+            clear: both;
+        }
+
+        .message-assistant {
+            background: white;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 18px 18px 18px 4px;
+            max-width: 70%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: inline-block;
+            float: left;
+            clear: both;
+        }
+
+        .message-blocked {
+            background: #fff5f5;
+            border-left: 4px solid #ff4757;
+            color: #c92a2a;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 8px;
+        }
+
+        .chat-input-container {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 14px;
+            resize: none;
+            font-family: inherit;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-send {
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-send:hover {
+            background: #5568d3;
+        }
+
+        .btn-send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* Dashboard Panel */
+        .dashboard-panel {
+            width: 400px;
+            background: white;
+            border-left: 1px solid #e0e0e0;
+            overflow-y: auto;
+        }
+
+        .dashboard-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .dashboard-header h2 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .dashboard-content {
+            padding: 20px;
+        }
+
+        .metric-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .metric-value.danger {
+            color: #ff4757;
+        }
+
+        .metric-value.success {
+            color: #2ed573;
+        }
+
+        .activity-log {
+            margin-top: 20px;
+        }
+
+        .activity-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .activity-time {
+            color: #666;
+            font-size: 11px;
+        }
+
+        .activity-emergency {
+            border-left: 4px solid #ff4757;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <h1>🏥 AegisGraph</h1>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="doctorSelect">Doctor</label>
+                <select id="doctorSelect" required>
+                    <option value="">Select Doctor...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="passcode">Passcode</label>
+                <input type="password" id="passcode" placeholder="Enter passcode" required>
+            </div>
+            <button type="submit" class="btn">Login</button>
+            <button type="button" class="btn btn-emergency" id="emergencyLogin">🚨 Emergency Access</button>
+            <div class="error" id="loginError"></div>
+        </form>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container" id="appContainer">
+        <div class="app-header">
+            <h1>🏥 AegisGraph Clinical Chat</h1>
+            <div class="user-info">
+                <span id="emergencyBadge" class="emergency-badge" style="display: none;">🚨 EMERGENCY MODE</span>
+                <span id="doctorName"></span>
+                <span class="btn-logout" onclick="logout()">Logout</span>
+            </div>
+        </div>
+        <div class="app-body">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Patients</h2>
+                    <p id="patientCount">Loading...</p>
+                </div>
+                <div class="patient-list" id="patientList">
+                    <div class="loading">Loading patients...</div>
+                </div>
+            </div>
+
+            <!-- Chat Area -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h2 id="chatPatientName">Select a patient to start</h2>
+                    <p id="chatPatientInfo"></p>
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <div class="loading">Select a patient to view chat history</div>
+                </div>
+                <div class="chat-input-container">
+                    <div class="chat-input-wrapper">
+                        <textarea 
+                            id="chatInput" 
+                            class="chat-input" 
+                            placeholder="Type your message..."
+                            rows="1"
+                            disabled
+                        ></textarea>
+                        <button id="sendBtn" class="btn-send" disabled>Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Panel -->
+            <div class="dashboard-panel">
+                <div class="dashboard-header">
+                    <h2>📊 Live Metrics</h2>
+                </div>
+                <div class="dashboard-content">
+                    <div class="metric-card">
+                        <div class="metric-label">Total Requests</div>
+                        <div class="metric-value" id="metricRequests">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Blocked Requests</div>
+                        <div class="metric-value danger" id="metricBlocked">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Success Rate</div>
+                        <div class="metric-value success" id="metricSuccess">100%</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Security Mode</div>
+                        <div class="metric-value" id="metricMode">NORMAL</div>
+                    </div>
+
+                    <div class="activity-log">
+                        <h3 style="margin-bottom: 15px; font-size: 16px;">Recent Activity</h3>
+                        <div id="activityLog">
+                            <div class="loading">No activity yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:8000';
+        let currentDoctor = null;
+        let currentPatient = null;
+        let isEmergencyMode = false;
+        let chatHistory = {};
+        let activityLog = [];
+
+        // Load doctors on page load
+        window.addEventListener('DOMContentLoaded', loadDoctors);
+
+        async function loadDoctors() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/doctors`);
+                const doctors = await response.json();
+                
+                const select = document.getElementById('doctorSelect');
+                select.innerHTML = '<option value="">Select Doctor...</option>';
+                
+                doctors.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = `${doc.name} (${doc.specialty})`;
+                    option.dataset.name = doc.name;
+                    option.dataset.specialty = doc.specialty;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading doctors:', error);
+            }
+        }
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await login(false);
+        });
+
+        document.getElementById('emergencyLogin').addEventListener('click', async () => {
+            await login(true);
+        });
+
+        async function login(emergency) {
+            const doctorSelect = document.getElementById('doctorSelect');
+            const passcode = document.getElementById('passcode').value;
+            const errorDiv = document.getElementById('loginError');
+
+            if (!doctorSelect.value) {
+                errorDiv.textContent = 'Please select a doctor';
+                return;
+            }
+
+            if (passcode !== '1234') {
+                errorDiv.textContent = 'Invalid passcode';
+                return;
+            }
+
+            const selectedOption = doctorSelect.options[doctorSelect.selectedIndex];
+            currentDoctor = {
+                id: doctorSelect.value,
+                name: selectedOption.dataset.name,
+                specialty: selectedOption.dataset.specialty
+            };
+            isEmergencyMode = emergency;
+
+            // Log emergency access
+            if (emergency) {
+                await logActivity('EMERGENCY_ACCESS', `${currentDoctor.name} activated emergency mode`);
+            }
+
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appContainer').style.display = 'block';
+            document.getElementById('doctorName').textContent = currentDoctor.name;
+            
+            if (emergency) {
+                document.getElementById('emergencyBadge').style.display = 'block';
+            }
+
+            await loadPatients();
+            startMetricsPolling();
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        // Load patients
+        async function loadPatients() {
+            try {
+                const url = isEmergencyMode 
+                    ? `${BACKEND_URL}/patients` 
+                    : `${BACKEND_URL}/patients?doctor_id=${currentDoctor.id}`;
+                
+                const response = await fetch(url);
+                const patients = await response.json();
+                
+                const listDiv = document.getElementById('patientList');
+                listDiv.innerHTML = '';
+                
+                document.getElementById('patientCount').textContent = 
+                    `${patients.length} patient${patients.length !== 1 ? 's' : ''}`;
+
+                patients.forEach(patient => {
+                    const item = document.createElement('div');
+                    item.className = 'patient-item';
+                    item.innerHTML = `
+                        <div class="patient-name">${patient.name}</div>
+                        <div class="patient-id">ID: ${patient.id}</div>
+                    `;
+                    item.onclick = () => selectPatient(patient);
+                    listDiv.appendChild(item);
+                });
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+
+        // Select patient
+        async function selectPatient(patient) {
+            currentPatient = patient;
+            
+            // Update UI
+            document.querySelectorAll('.patient-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            document.getElementById('chatPatientName').textContent = patient.name;
+            document.getElementById('chatPatientInfo').textContent = 
+                `ID: ${patient.id} | DOB: ${patient.dob || 'N/A'} | Blood Type: ${patient.blood_type || 'N/A'}`;
+            
+            document.getElementById('chatInput').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+
+            // Load chat history
+            await loadChatHistory(patient.id);
+        }
+
+        // Load chat history
+        async function loadChatHistory(patientId) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/chat/history?patient_id=${patientId}&doctor_id=${currentDoctor.id}`);
+                const history = await response.json();
+                
+                chatHistory[patientId] = history;
+                renderChatMessages(history);
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+                renderChatMessages([]);
+            }
+        }
+
+        // Render chat messages
+        function renderChatMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+
+            if (messages.length === 0) {
+                container.innerHTML = '<div class="loading">No messages yet. Start a conversation!</div>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message clearfix';
+                
+                const userMsg = document.createElement('div');
+                userMsg.className = 'message-user';
+                userMsg.innerHTML = `
+                    ${msg.message}
+                    <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                `;
+                messageDiv.appendChild(userMsg);
+
+                const assistantMsg = document.createElement('div');
+                assistantMsg.className = msg.blocked ? 'message-assistant message-blocked' : 'message-assistant';
+                assistantMsg.innerHTML = `
+                    ${msg.blocked ? '🚫 ' : ''}${msg.response || msg.reason}
+                    <div class="message-time">${new Date(msg.timestamp).toLocaleTimeString()}</div>
+                `;
+                messageDiv.appendChild(assistantMsg);
+
+                container.appendChild(messageDiv);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Send message
+        document.getElementById('sendBtn').addEventListener('click', sendMessage);
+        document.getElementById('chatInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentPatient) return;
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: currentDoctor.id,
+                        doc_id: currentDoctor.id,
+                        patient_id: currentPatient.id,
+                        role: currentDoctor.specialty,
+                        message: message,
+                        emergency_mode: isEmergencyMode
+                    })
+                });
+
+                const result = await response.json();
+                
+                // Add to local history
+                if (!chatHistory[currentPatient.id]) {
+                    chatHistory[currentPatient.id] = [];
+                }
+                chatHistory[currentPatient.id].push({
+                    message: message,
+                    response: result.final_text,
+                    blocked: result.blocked,
+                    reason: result.reason,
+                    timestamp: new Date().toISOString()
+                });
+
+                // Re-render messages
+                renderChatMessages(chatHistory[currentPatient.id]);
+
+                // Log activity
+                if (result.blocked) {
+                    await logActivity('BLOCKED', `Request blocked: ${result.reason}`);
+                } else if (isEmergencyMode) {
+                    await logActivity('EMERGENCY_QUERY', `Emergency query for ${currentPatient.name}`);
+                }
+
+                input.value = '';
+            } catch (error) {
+                console.error('Error sending message:', error);
+                alert('Failed to send message');
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send';
+            }
+        }
+
+        // Log activity
+        async function logActivity(type, description) {
+            try {
+                await fetch(`${BACKEND_URL}/activity/log`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        doctor_id: currentDoctor.id,
+                        type: type,
+                        description: description,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+                
+                // Add to local log
+                activityLog.unshift({
+                    type: type,
+                    description: description,
+                    timestamp: new Date().toISOString()
+                });
+                
+                renderActivityLog();
+            } catch (error) {
+                console.error('Error logging activity:', error);
+            }
+        }
+
+        // Render activity log
+        function renderActivityLog() {
+            const container = document.getElementById('activityLog');
+            container.innerHTML = '';
+
+            const recentActivities = activityLog.slice(0, 10);
+            
+            if (recentActivities.length === 0) {
+                container.innerHTML = '<div class="loading">No activity yet</div>';
+                return;
+            }
+
+            recentActivities.forEach(activity => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                if (activity.type.includes('EMERGENCY')) {
+                    item.classList.add('activity-emergency');
+                }
+                item.innerHTML = `
+                    <div>${activity.description}</div>
+                    <div class="activity-time">${new Date(activity.timestamp).toLocaleString()}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Metrics polling
+        function startMetricsPolling() {
+            updateMetrics();
+            setInterval(updateMetrics, 5000);
+        }
+
+        async function updateMetrics() {
+            try {
+                const response = await fetch(`${BACKEND_URL}/metrics`);
+                const metrics = await response.json();
+                
+                document.getElementById('metricRequests').textContent = metrics.total_requests || 0;
+                document.getElementById('metricBlocked').textContent = metrics.blocked_requests || 0;
+                
+                const successRate = metrics.total_requests > 0 
+                    ? Math.round(((metrics.total_requests - metrics.blocked_requests) / metrics.total_requests) * 100)
+                    : 100;
+                document.getElementById('metricSuccess').textContent = successRate + '%';
+                
+                document.getElementById('metricMode').textContent = metrics.security_mode || 'NORMAL';
+            } catch (error) {
+                console.error('Error updating metrics:', error);
+            }
+        }
+    </script>
+</body>
+</html>

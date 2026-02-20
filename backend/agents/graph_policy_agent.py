@@ -24,7 +24,13 @@ class GraphPolicyAgent:
         Returns:
             PolicyDecision with authorization result
         """
-        with tracer.trace("policy.neo4j_check"):
+        with tracer.trace("policy.neo4j_check") as span:
+            # Add span tags
+            span.set_tag("request_id", request.request_id)
+            span.set_tag("security_mode", request.security_mode)
+            span.set_tag("doc_id", request.doc_id)
+            span.set_tag("patient_id", request.patient_id)
+            
             try:
                 # If intent doesn't need patient context, authorize with NONE scope
                 if not intent_decision.needs_patient_context:
