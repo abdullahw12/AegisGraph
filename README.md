@@ -1,6 +1,6 @@
 # AegisGraph
 
-**HIPAA-Aligned LLM Firewall with Graph-Based Authorization**
+**HIPAA-Aligned LLM Firewall with Graph-Based Authorizations**
 
 AegisGraph is a security-first LLM gateway that enforces HIPAA compliance through a four-agent pipeline with Neo4j-powered authorization, real-time threat detection, and comprehensive Datadog monitoring.
 
